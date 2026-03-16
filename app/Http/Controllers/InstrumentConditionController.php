@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\Interfaces\ActivityLogInterface;
 use App\Contracts\Interfaces\InstrumentConditionInterface;
 use App\Contracts\Interfaces\InstrumentInterface;
+use App\Contracts\Interfaces\PenaltyInterface;
 use App\Contracts\Interfaces\RentalDetailInterface;
 use App\Enums\ActionEnum;
 use App\Enums\ModuleEnum;
@@ -14,27 +15,38 @@ use App\Helpers\PaginationHelper;
 use App\Helpers\Response;
 use App\Http\Requests\InstrumentConditionRequest;
 use App\Http\Resources\InstrumentConditionResource;
-use App\Models\InstrumentCondition;
 use App\Services\ActivityLogService;
 use App\Services\InstrumentConditionService;
+use App\Services\PenaltyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class InstrumentConditionController extends Controller
 {
-    private $conditionInterface, $conditionService, $instrumentInterface, $rentalDetailInterface, $logService, $logInterface;
-    public function __construct(InstrumentConditionInterface $conditionInterface, InstrumentConditionService $conditionService, InstrumentInterface $instrumentInterface, RentalDetailInterface $rentalDetailInterface, ActivityLogService $logService, ActivityLogInterface $logInterface)
-    {
+    private $conditionInterface, $conditionService,
+        $instrumentInterface, $rentalDetailInterface,
+        $logService, $logInterface,
+        $penaltyInterface, $penaltyService;
+    public function __construct(
+        InstrumentConditionInterface $conditionInterface,
+        InstrumentConditionService $conditionService,
+        InstrumentInterface $instrumentInterface,
+        RentalDetailInterface $rentalDetailInterface,
+        ActivityLogService $logService,
+        ActivityLogInterface $logInterface,
+        PenaltyInterface $penaltyInterface,
+        PenaltyService $penaltyService,
+    ) {
         $this->conditionInterface = $conditionInterface;
         $this->conditionService = $conditionService;
         $this->instrumentInterface = $instrumentInterface;
         $this->rentalDetailInterface = $rentalDetailInterface;
         $this->logService = $logService;
         $this->logInterface = $logInterface;
+        $this->penaltyInterface = $penaltyInterface;
+        $this->penaltyService = $penaltyService;
     }
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index(Request $request)
     {
         $per_page = $request->per_page ?? 8;
@@ -51,17 +63,6 @@ class InstrumentConditionController extends Controller
         }
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(InstrumentConditionRequest $request)
     {
         if (!$this->rentalDetailInterface->instrumentExistsInRental(
@@ -90,6 +91,17 @@ class InstrumentConditionController extends Controller
             $service = $this->conditionService->mappingInstrumentCondition($validate);
             $data = $this->conditionInterface->store($service);
 
+            if (isset($validate['damage_cost']) && $validate['damage_cost'] > 0) {
+                $mapPenalty = $this->penaltyService->mappPenalty([
+                    'rental_id'   => $validate['rental_id'],
+                    'condition_id' => $data->id,
+                    'amount'      => $validate['damage_cost'],
+                    'title'       => 'Denda Pengerusakan Barang',
+                    'reason'      => $validate['note'] ?? null,
+                ]);
+                $this->penaltyInterface->store($mapPenalty);
+            }
+
             $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::CONDITION->value, 'Menambah data kondisi instrumen "' . $instrument->name . '"');
             $this->logInterface->store($log);
 
@@ -104,9 +116,6 @@ class InstrumentConditionController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         try {
@@ -119,17 +128,6 @@ class InstrumentConditionController extends Controller
         }
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(instrumentCondition $insrumentCondition)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(InstrumentConditionRequest $request, string $id)
     {
         if (!$this->rentalDetailInterface->instrumentExistsInRental(
@@ -174,9 +172,6 @@ class InstrumentConditionController extends Controller
         }
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         $data = $this->conditionInterface->show($id);

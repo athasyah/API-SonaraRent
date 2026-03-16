@@ -29,8 +29,9 @@ class InstrumentConditionRequest extends FormRequest
             'rental_id' => 'required|exists:rentals,id',
             'instrument_id' => 'required|exists:instruments,id',
             'condition' => 'required|in:good,minor_damage,major_damage',
-            'note' => 'nullable|string',
+            'note' => 'nullable|string|required_if:condition,minor_damage,major_damage',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5048',
+            'damage_cost' => 'nullable|required_if:condition,minor_damage,major_damage|integer|min:0',
         ];
     }
 

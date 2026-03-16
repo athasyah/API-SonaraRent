@@ -14,4 +14,8 @@ class Penalty extends Model
     {
         return $this->belongsTo(Rental::class);
     }
+    public function condition()
+    {
+        return $this->belongsTo(InstrumentCondition::class, 'condition_id');
+    }
 }

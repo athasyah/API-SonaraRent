@@ -59,6 +59,11 @@ Route::middleware('auth:sanctum')->group(function () {
         //Route Instrument Condition
         Route::get('/instrument-condition/no-paginate', [InstrumentConditionController::class, 'noPaginate'])->name('instrument-condition-no-paginate');
         Route::resource('instrument-condition', InstrumentConditionController::class);
+
+        //Route Rental
+        Route::put('/rental/{id}/status', [RentalController::class, 'statusRental'])->name('rental-status');
+        Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');
+        Route::resource('rental', RentalController::class);
     });
 
     //Endpoint Role Customer
@@ -79,6 +84,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('review/no-paginate', [ReviewController::class, 'noPaginate'])->name('review-no-paginate');
         Route::resource('review', ReviewController::class);
     });
+    //Route Rental
+    Route::get('my/rental', [RentalController::class, 'getByUser'])->name('my-rental');
 
     Route::get('/cart/availability', [CartController::class, 'availability']);
 });

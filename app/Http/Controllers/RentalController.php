@@ -273,10 +273,11 @@ class RentalController extends Controller
             return Response::NotFound('Rental tidak ditemukan');
         }
 
-        $validate  = $request->validated();
+        $validate = $request->validated();
         $newStatus = $validate['status'];
         $oldStatus = $rental->status;
-
+        $customerName = $rental->customer?->name ?? 'Customer tidak diketahui';
+        $rentalPeriod = \Carbon\Carbon::parse($rental->rent_date)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($rental->return_date)->format('d M Y');
         $allowedTransitions = [
             StatusEnum::PENDING->value => [
                 StatusEnum::APPROVED->value,
@@ -287,6 +288,9 @@ class RentalController extends Controller
             ],
             StatusEnum::ONGOING->value => [
                 StatusEnum::RETURNED->value,
+            ],
+            StatusEnum::RESERVED->value => [
+                StatusEnum::ONGOING->value,
             ],
         ];
 
@@ -302,34 +306,32 @@ class RentalController extends Controller
 
         DB::beginTransaction();
         try {
-            // update status rental
             $updatedRental = $this->rentalInterface->update($id, [
                 'status' => $newStatus
             ]);
 
             if ($newStatus === StatusEnum::RETURNED->value) {
-                $penaltyAmount = $this->penaltyService
-                    ->calculateLatePenalty($rental);
+                $penaltyAmount = $this->penaltyService->calculateLatePenalty($rental);
 
                 if ($penaltyAmount > 0) {
                     $this->penaltyInterface->store([
                         'rental_id' => $rental->id,
-                        'title' => 'Denda keterlambatan',
-                        'reason' => 'Pengembalian melebihi batas waktu',
-                        'amount' => $penaltyAmount,
+                        'title'     => 'Denda keterlambatan',
+                        'reason'    => 'Pengembalian melebihi batas waktu',
+                        'amount'    => $penaltyAmount,
                     ]);
                 }
             }
 
+            $logMessage = "Mengubah status rental ({$rentalPeriod}) milik {$customerName} dari {$oldStatus} menjadi {$newStatus}";
+            $log = $this->logService->logActivity(
+                ActionEnum::UPDATE->value,
+                ModuleEnum::RENTAL->value,
+                $logMessage
+            );
+            $this->logInterface->store($log);
+
             DB::commit();
-
-            // trigger event SETELAH commit
-            event(new RentalStatusUpdated(
-                $updatedRental->load('details.instrument'),
-                $oldStatus,
-                $newStatus
-            ));
-
             return Response::Ok('Berhasil mengubah status rental', $updatedRental);
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -337,6 +339,20 @@ class RentalController extends Controller
                 'Terjadi kesalahan saat mengubah status rental',
                 $th->getMessage()
             );
+        }
+    }
+
+    public function getByUser(Request $request)
+    {
+        $payload = [];
+        try {
+            $data = $this->rentalInterface->getByUser(auth()->user()->id);
+            $resource = RentalResource::collection($data);
+            $paginate = PaginationHelper::meta($data);
+
+            return Response::Paginate('Berhasil mendapatkan data rental', $resource, $paginate);
+        } catch (\Throwable $th) {
+            return Response::Error('Gagal mendapatkan data rental', $th->getMessage());
         }
     }
 }

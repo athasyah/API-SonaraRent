@@ -29,4 +29,9 @@ class Rental extends Model
     {
         return $this->hasOne(Guarantee::class);
     }
+
+    public function penalty()
+    {
+        return $this->hasMany(Penalty::class);
+    }
 }

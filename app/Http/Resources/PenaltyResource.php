@@ -17,11 +17,14 @@ class PenaltyResource extends JsonResource
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
-            'user_name' =>$this->user->name,
+            'user_name' => $this->user?->name,
             'rental_id' => $this->rental_id,
+            'condition_id' => $this->condition_id,
             'title' => $this->title,
             'reason' => $this->reason,
             'amount' => $this->amount,
+            'instrument_name' => $this->condition?->instrument?->name,
+            'created_at' => $this->created_at,
         ];
     }
 }

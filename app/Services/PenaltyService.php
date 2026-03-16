@@ -11,6 +11,7 @@ class PenaltyService
         $data = [
             'user_id' => auth()->user()->id,
             'rental_id' => $data['rental_id'],
+            'condition_id' => $data['condition_id'],
             'title' => $data['title'],
             'reason' => $data['reason'],
             'amount' => $data['amount'],

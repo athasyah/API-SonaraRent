@@ -18,6 +18,7 @@ class RentalResource extends JsonResource
             'id' => $this->id,
             'user_id' => $this->user_id,
             'customer_id' => $this->customer_id,
+            'customer_name' => $this->customer?->name,
             'rent_date' => $this->rent_date,
             'return_date' => $this->return_date,
             'total_price' => $this->total_price,
@@ -25,6 +26,7 @@ class RentalResource extends JsonResource
             'details' => RentalDetailResource::collection(
                 $this->whenLoaded('details')
             ),
+            'penalty' => PenaltyResource::collection($this->whenLoaded('penalty')),
         ];
     }
 }

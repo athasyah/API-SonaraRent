@@ -15,6 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('user_id')->nullable()->constrained();
             $table->foreignUuid('rental_id')->nullable()->constrained();
+            $table->foreignUuid('condition_id')->nullable()->constrained('instrument_conditions');
             $table->string('title');
             $table->string('reason');
             $table->integer('amount');

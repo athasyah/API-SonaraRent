@@ -21,7 +21,7 @@ class RentalService
             'rent_date' => $data['rent_date'],
             'return_date' => $data['return_date'],
             'total_price' => $totalPrice,
-            'status' => StatusEnum::PENDING->value,
+            'status' => isset($data['guarantee']) ? StatusEnum::RESERVED->value : StatusEnum::PENDING->value,
         ];
 
         return $data;
@@ -58,11 +58,9 @@ class RentalService
 
     public function calculateRentalDays(string $rentDate, string $returnDate): int
     {
-        $rent   = Carbon::parse($rentDate);
-        $return = Carbon::parse($returnDate);
+        $rent = Carbon::parse($rentDate)->startOfDay();
+        $return = Carbon::parse($returnDate)->startOfDay();
 
-        $diffInHours = $rent->diffInHours($return);
-
-        return max(1, ceil($diffInHours / 24));
+        return $rent->diffInDays($return) + 1;
     }
 }

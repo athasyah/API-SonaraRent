@@ -51,7 +51,7 @@ class RentalRepository extends BaseRepository implements RentalInterface
     {
         return $this->model->query()
             ->orderBy('updated_at', 'desc')
-            ->with(['details', 'user', 'customer'])
+            ->with(['details', 'user', 'customer','penalty'])
             ->paginate($perPage, ['*'], 'page', $page);
     }
 
@@ -63,4 +63,10 @@ class RentalRepository extends BaseRepository implements RentalInterface
             ->get();
         return $query;
     }
+
+    public function getByUser (string $id)
+    {
+        return $this->model->where('customer_id', $id)->with('details')->orderBy('updated_at', 'desc')->paginate(6);
+    }
+
 }

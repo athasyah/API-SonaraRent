@@ -23,6 +23,7 @@ class InstrumentResource extends JsonResource
             'name' => $this->name,
             'price_per_day' => $this->price_per_day,
             'status' => $this->status,
+            'description' => $this->description,
             'image' => $this->image
                 ? url(Storage::url($this->image))
                 : null,

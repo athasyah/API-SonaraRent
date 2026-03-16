@@ -17,7 +17,7 @@ class RentalDetailResource extends JsonResource
         return [
             'id' => $this->id,
             'instrument_id' => $this->instrument_id,
-            'insrument' => $this->instrument->name,
+            'instrument' => $this->instrument->name,
             'rental_id' => $this->rental_id,
             'price_per_day' => $this->price_per_day,
             'days' => $this->day,
