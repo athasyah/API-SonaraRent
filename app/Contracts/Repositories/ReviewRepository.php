@@ -42,9 +42,29 @@ class ReviewRepository extends BaseRepository implements ReviewInterface
 
     public function customPaginate(int $perPage = 10, int $page = 1, ?array $data): mixed
     {
-        return $this->model->query()
+        $query = $this->model->query()
             ->orderBy('updated_at', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->with(['instrument', 'customer', 'rental']);
+
+        if (!empty($data['search'])) {
+            $query->where(function ($q) use ($data) {
+                $q->whereHas('instrument', function ($iq) use ($data) {
+                    $iq->where('name', 'like', '%' . $data['search'] . '%');
+                })->orWhereHas('customer', function ($cq) use ($data) {
+                    $cq->where('name', 'like', '%' . $data['search'] . '%');
+                });
+            });
+        }
+
+        if (!empty($data['rating'])) {
+            $query->where('rating', $data['rating']);
+        }
+
+        if (!empty($data['instrument_id'])) {
+            $query->where('instrument_id', $data['instrument_id']);
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function noPaginate(array $data): mixed

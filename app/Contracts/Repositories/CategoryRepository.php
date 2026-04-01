@@ -46,15 +46,15 @@ class CategoryRepository extends BaseRepository implements CategoryInterface
             ->orderBy('updated_at', 'desc');
 
         if (!empty($data['type'])) {
-            return $query->where('type', $data['type']);
+            $query->where('type', $data['type']);
         }
 
-        if (!empty($data['create_from'])) {
-            return $query->where('create_at', $data['create_from']);
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
         }
 
-        if (!empty($data['create_until'])) {
-            return $query->where('create_at', $data['create_until']);
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
         }
 
         if (!empty($data['search'])) {

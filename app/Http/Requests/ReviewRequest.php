@@ -31,6 +31,7 @@ class ReviewRequest extends FormRequest
             'instrument_id' => 'required|exists:instruments,id',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ];
     }
 
@@ -49,6 +50,10 @@ class ReviewRequest extends FormRequest
             'rating.max' => 'Rating tertinggi adalah 5 bintang.',
 
             'comment.string'  => 'Komentar harus berupa teks.',
+
+            'image.image' => 'File harus berupa gambar.',
+            'image.mimes' => 'Format gambar harus jpeg, png, jpg, atau webp.',
+            'image.max'   => 'Ukuran gambar maksimal 2MB.',
         ];
     }
 

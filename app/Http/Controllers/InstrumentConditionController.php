@@ -102,7 +102,7 @@ class InstrumentConditionController extends Controller
                 $this->penaltyInterface->store($mapPenalty);
             }
 
-            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::CONDITION->value, 'Menambah data kondisi instrumen "' . $instrument->name . '"');
+            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::CONDITION->value, 'Menambah data kondisi instrumen "' . $instrument->name . '" (Rental ID: ' . $validate['rental_id'] . ')');
             $this->logInterface->store($log);
 
             DB::commit();

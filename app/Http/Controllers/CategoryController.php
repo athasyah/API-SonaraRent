@@ -30,7 +30,7 @@ class CategoryController extends Controller
     {
         $per_page = $request->per_page ?? 8;
         $page = $request->page ?? 1;
-        $payload = $request->only(['category', 'search', 'type', 'create_from', 'create_until']);
+        $payload = $request->only(['category', 'search', 'type', 'date_from', 'date_to']);
         try {
             $data = $this->categoryInterface->customPaginate($per_page, $page, $payload);
             $resource = CategoryResource::collection($data);
@@ -111,7 +111,7 @@ class CategoryController extends Controller
             $update = $this->categoryInterface->update($id, $validate);
 
             $newData = $this->categoryInterface->show($id);
-            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::CATEGORY->value, 'Mengubah data kategori "' . $data->name);
+            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::CATEGORY->value, 'Mengubah data kategori "' . $data->name . '" menjadi "' . $newData->name . '"');
             $this->logInterface->store($log);
 
             DB::commit();

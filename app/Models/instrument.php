@@ -24,4 +24,9 @@ class Instrument extends Model
     {
         return $this->hasMany(RentalDetail::class);
     }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 }

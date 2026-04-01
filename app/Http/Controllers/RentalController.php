@@ -58,7 +58,7 @@ class RentalController extends Controller
     {
         $per_page = $request->per_page ?? 8;
         $page = $request->page ?? 1;
-        $payload = [];
+        $payload = $request->only(['search', 'status', 'date_from', 'date_to']);
         try {
             $data = $this->rentalInterface->customPaginate($per_page, $page, $payload);
             $resource = RentalResource::collection($data);
@@ -129,7 +129,8 @@ class RentalController extends Controller
                 $this->guaranteeInterface->store($mapGuarantee);
             }
 
-            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::RENTAL->value, 'Memnambah data Rental');
+            $customerName = $rental->customer?->name ?? 'Customer';
+            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::RENTAL->value, 'Membuat data Rental untuk ' . $customerName . ' dengan total harga Rp ' . number_format($totalPrice, 0, ',', '.'));
             $this->logInterface->store($log);
 
             $log1 = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::GUARANTEE->value, 'Membuat data Guarantee');
@@ -211,7 +212,8 @@ class RentalController extends Controller
                 $this->rentDetailInterface->store($detail);
             }
 
-            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::RENTAL->value, 'Mengubah data Rental');
+            $customerName = $rental->customer?->name ?? 'Customer';
+            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::RENTAL->value, 'Mengubah data Rental milik ' . $customerName);
             $this->logInterface->store($log);
 
             DB::commit();
@@ -242,7 +244,8 @@ class RentalController extends Controller
         try {
             $rent = $this->rentalInterface->delete($id);
 
-            $log = $this->logService->logActivity(ActionEnum::DELETE->value, ModuleEnum::RENTAL->value, 'Menghapus data Rental');
+            $customerName = $data->customer?->name ?? 'Customer';
+            $log = $this->logService->logActivity(ActionEnum::DELETE->value, ModuleEnum::RENTAL->value, 'Menghapus data Rental milik ' . $customerName);
             $this->logInterface->store($log);
 
             DB::commit();
@@ -306,9 +309,12 @@ class RentalController extends Controller
 
         DB::beginTransaction();
         try {
-            $updatedRental = $this->rentalInterface->update($id, [
-                'status' => $newStatus
-            ]);
+            $updateData = ['status' => $newStatus];
+            if ($newStatus === StatusEnum::RETURNED->value) {
+                $updateData['actual_return_date'] = \Carbon\Carbon::now();
+            }
+
+            $updatedRental = $this->rentalInterface->update($id, $updateData);
 
             if ($newStatus === StatusEnum::RETURNED->value) {
                 $penaltyAmount = $this->penaltyService->calculateLatePenalty($rental);

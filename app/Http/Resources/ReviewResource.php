@@ -18,10 +18,13 @@ class ReviewResource extends JsonResource
             'id' => $this->id,
             'rental_id' => $this->rental_id,
             'instrument_id' => $this->instrument_id,
-            'instrument_name' => $this->instrument->name,
+            'instrument_name' => $this->instrument->name ?? null,
+            'customer_id' => $this->customer_id,
+            'customer_name' => $this->customer->name ?? null,
             'rating' => $this->rating,
             'comment' => $this->comment,
-            'image' => $this->image,
+            'image' => $this->image ? asset('storage/' . $this->image) : null,
+            'created_at' => $this->created_at,
         ];
     }
 }

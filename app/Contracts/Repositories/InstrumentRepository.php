@@ -19,7 +19,9 @@ class InstrumentRepository extends BaseRepository implements InstrumentInterface
 
     public function show(mixed $id)
     {
-        return $this->model->find($id);
+        return $this->model
+            ->with(['category', 'brandCategory', 'reviews.customer', 'rentalDetails.rental.customer'])
+            ->find($id);
     }
 
     public function store(array $data)
@@ -62,6 +64,20 @@ class InstrumentRepository extends BaseRepository implements InstrumentInterface
 
         if (!empty($data['status'])) {
             $query->where('status', $data['status']);
+        }
+
+        if (!empty($data['brand'])) {
+            $query->whereHas('brandCategory', function ($q) use ($data) {
+                $q->where('name', $data['brand']);
+            });
+        }
+
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
         }
 
         if (!empty($data['search'])) {

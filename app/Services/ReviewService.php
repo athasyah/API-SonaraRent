@@ -10,18 +10,18 @@ class ReviewService
     use UploadTrait;
     public function mappingReview(array $data)
     {
-        $data = [
+        $mappedData = [
             'rental_id' => $data['rental_id'],
             'instrument_id' => $data['instrument_id'],
             'rating' => $data['rating'],
             'comment' => $data['comment'] ?? null,
-            'customer_id' => auth()->user()->id,
+            'customer_id' => auth()->id(),
         ];
 
         if (isset($data['image'])) {
-            $data['image'] = $this->upload('reviews', $data['image']);
+            $mappedData['image'] = $this->upload('reviews', $data['image']);
         }
 
-        return $data;
+        return $mappedData;
     }
 }

@@ -14,6 +14,7 @@ class UserService
         $result = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'number_phone' => $data['number_phone'] ?? null,
             'password' => bcrypt($data['password']),
             'email_otp' => $data['email_otp'] ?? null,
             'otp_expires_at' => $data['otp_expires_at'] ?? null,
@@ -49,6 +50,7 @@ class UserService
         $result = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'number_phone' => $data['number_phone'] ?? null,
             'password' => bcrypt('staffpassword'),
             'email_otp' => $data['email_otp'] ?? null,
             'otp_expires_at' => $data['otp_expires_at'] ?? null,
@@ -63,6 +65,7 @@ class UserService
         $result = [
             'name' => $data['name'],
             'email' => $data['email'],
+            'number_phone' => $data['number_phone'] ?? null,
         ];
 
         return $result;
@@ -72,6 +75,7 @@ class UserService
     {
         $result = [
             'name' => $data['name'] ?? null,
+            'number_phone' => $data['number_phone'] ?? null,
         ];
 
         if (isset($data['image'])) {

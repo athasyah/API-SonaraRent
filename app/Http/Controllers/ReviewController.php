@@ -38,7 +38,7 @@ class ReviewController extends Controller
     {
         $per_page = $request->per_page ?? 8;
         $page = $request->page ?? 1;
-        $payload = [];
+        $payload = $request->only(['search', 'rating', 'instrument_id']);
         try {
             $data = $this->reviewInterface->customPaginate($per_page, $page, $payload);
             $resource = ReviewResource::collection($data);
@@ -69,7 +69,7 @@ class ReviewController extends Controller
 
         $rental = $this->rentalInterface->show($request->rental_id);
 
-        if (!$rental || $rental->customer_id !== auth()->user()->id()) {
+        if (!$rental || $rental->customer_id !== auth()->id()) {
             return Response::Error('Anda tidak berhak memberi review pada rental ini', null);
         }
 
@@ -84,7 +84,8 @@ class ReviewController extends Controller
             $mapping = $this->reviewService->mappingReview($validate);
             $data = $this->reviewInterface->store($mapping);
 
-            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::REVIEW->value, 'Membuat data review "' . $data->name . '"');
+            $data->load(['customer', 'instrument']);
+            $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::REVIEW->value, 'Memberi review untuk instrumen "' . $data->instrument->name . '" oleh ' . $data->customer->name);
             $this->logInterface->store($log);
 
             DB::commit();
@@ -136,9 +137,15 @@ class ReviewController extends Controller
         DB::beginTransaction();
         try {
             $mapping = $this->reviewService->mappingReview($validate);
+            
+            if ($request->hasFile('image') && $data->image) {
+                $this->reviewService->remove($data->image);
+            }
+
             $update = $this->reviewInterface->update($id, $mapping);
 
-            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::REVIEW->value, 'Mengubah data review "' . $data->name . '"');
+            $data->load(['customer', 'instrument']);
+            $log = $this->logService->logActivity(ActionEnum::UPDATE->value, ModuleEnum::REVIEW->value, 'Mengubah review instrumen "' . $data->instrument->name . '" oleh ' . $data->customer->name);
             $this->logInterface->store($log);
 
             DB::commit();
@@ -158,9 +165,13 @@ class ReviewController extends Controller
 
         if (!$data) return Response::NotFound('Data review tidak ditemukan');
         try {
+            if ($data->image) {
+                $this->reviewService->remove($data->image);
+            }
             $delete = $this->reviewInterface->delete($id);
 
-            $log = $this->logService->logActivity(ActionEnum::DELETE->value, ModuleEnum::REVIEW->value, 'Membuat data review "' . $data->name . '"');
+            $data->load(['customer', 'instrument']);
+            $log = $this->logService->logActivity(ActionEnum::DELETE->value, ModuleEnum::REVIEW->value, 'Menghapus review instrumen "' . $data->instrument->name . '" oleh ' . $data->customer->name);
             $this->logInterface->store($log);
 
             return Response::Ok('Berhasil menghapus data review', $delete);

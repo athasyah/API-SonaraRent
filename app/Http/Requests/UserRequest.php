@@ -31,6 +31,7 @@ class UserRequest extends FormRequest
 
         return [
             'name' => 'required|string',
+            'number_phone' => 'nullable|string|max:15',
             'email' => [
                 'required',
                 'email',
@@ -45,6 +46,9 @@ class UserRequest extends FormRequest
         return [
             'name.required' => 'Nama wajib diisi.',
             'name.string' => 'Nama harus berupa teks.',
+
+            'number_phone.string' => 'Nomor telepon harus berupa teks.',
+            'number_phone.max' => 'Nomor telepon maksimal 15 karakter.',
 
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',

@@ -12,4 +12,5 @@ enum ModuleEnum: string
     case AUTH = 'auth';
     case CONDITION = 'instrument condition';
     case PENALTY = 'penalty';
+    case USER = 'user';
 }

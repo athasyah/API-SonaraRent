@@ -51,6 +51,14 @@ class UserRepository extends BaseRepository implements UserInterface
             $query->role($data['role']);
         }
 
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
+        }
+
         if (!empty($data['search'])) {
             $query->where(function ($q) use ($data) {
                 $q->where('name', 'like', '%' . $data['search'] . '%');

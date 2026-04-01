@@ -33,7 +33,7 @@ class InstrumentController extends Controller
     {
         $per_page = $request->per_page ?? 8;
         $page = $request->page ?? 1;
-        $payload = $request->only(['category', 'min_price', 'max_price', 'status', 'brand', 'search', 'rent_date', 'return_date']);
+        $payload = $request->only(['category', 'min_price', 'max_price', 'status', 'brand', 'search', 'rent_date', 'return_date', 'date_from', 'date_to']);
         try {
             $data = $this->instrumentInterface->customPaginate($per_page, $page, $payload);
             $resource = InstrumentResource::collection($data);
@@ -69,7 +69,7 @@ class InstrumentController extends Controller
             $this->logInterface->store($log);
 
             DB::commit();
-            return Response::Ok('Berhasil menambahkan data instrumen', $data);
+            return Response::Ok('Berhasil menambahkan data instrumen', new InstrumentResource($data));
         } catch (\Throwable $th) {
             DB::rollBack();
             return Response::Error('Gagal menambahkan data instrumen', $th->getMessage());

@@ -5,10 +5,13 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InstrumentConditionController;
 use App\Http\Controllers\InstrumentController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +21,8 @@ Route::post('register', [AuthController::class, 'register'])->name('register');
 Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+
+Route::get('settings/{key}', [SettingController::class, 'getByKey']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [AuthController::class, 'getMe']);
@@ -46,6 +51,21 @@ Route::middleware('auth:sanctum')->group(function () {
         //Route Activity Log
         Route::get('activity-log/no-paginate', [ActivityLogController::class, 'noPaginate'])->name('activity-log-no-paginate');
         Route::resource('activity-log', ActivityLogController::class)->only('index');
+
+        //Route Dashboard Admin
+        Route::get('dashboard/admin', [DashboardController::class, 'admin'])->name('dashboard-admin');
+
+        //Route Export (Admin)
+        Route::prefix('export')->group(function () {
+            Route::get('rentals', [ExportController::class, 'rentals'])->name('export-rentals');
+            Route::get('instruments', [ExportController::class, 'instruments'])->name('export-instruments');
+            Route::get('users', [ExportController::class, 'users'])->name('export-users');
+            Route::get('reviews', [ExportController::class, 'reviews'])->name('export-reviews');
+        });
+
+        //Route Settings (Admin)
+        Route::get('settings', [SettingController::class, 'index']);
+        Route::post('settings', [SettingController::class, 'update']);
     });
 
     //Endpoint Role Staff
@@ -61,9 +81,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::resource('instrument-condition', InstrumentConditionController::class);
 
         //Route Rental
-        Route::put('/rental/{id}/status', [RentalController::class, 'statusRental'])->name('rental-status');
-        Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');
-        Route::resource('rental', RentalController::class);
+
+
+        //Route Dashboard Staff
+        Route::get('dashboard/staff', [DashboardController::class, 'staff'])->name('dashboard-staff');
+
+        //Route Export (Staff)
+        Route::get('export/rentals', [ExportController::class, 'rentals'])->name('staff-export-rentals');
     });
 
     //Endpoint Role Customer
@@ -76,9 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
         //Route User
         Route::post('user/{id}', [UserController::class, 'update']);
 
-        //Route Rental
-        Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');
-        Route::resource('rental', RentalController::class);
+
 
         //Route Review
         Route::get('review/no-paginate', [ReviewController::class, 'noPaginate'])->name('review-no-paginate');
@@ -88,4 +110,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('my/rental', [RentalController::class, 'getByUser'])->name('my-rental');
 
     Route::get('/cart/availability', [CartController::class, 'availability']);
+
+
+    Route::middleware(['role:' . RoleEnum::ADMIN->value . '|' . RoleEnum::STAFF->value . '|' . RoleEnum::CUSTOMER->value])->group(function () {
+        Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');
+        Route::resource('rental', RentalController::class);
+    });
 });
+

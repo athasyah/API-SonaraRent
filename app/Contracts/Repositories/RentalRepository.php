@@ -49,10 +49,29 @@ class RentalRepository extends BaseRepository implements RentalInterface
 
     public function customPaginate(int $perPage = 10, int $page = 1, ?array $data): mixed
     {
-        return $this->model->query()
+        $query = $this->model->query()
             ->orderBy('updated_at', 'desc')
-            ->with(['details', 'user', 'customer','penalty'])
-            ->paginate($perPage, ['*'], 'page', $page);
+            ->with(['details', 'user', 'customer', 'penalty']);
+
+        if (!empty($data['search'])) {
+            $query->whereHas('customer', function ($q) use ($data) {
+                $q->where('name', 'like', '%' . $data['search'] . '%');
+            });
+        }
+
+        if (!empty($data['status'])) {
+            $query->where('status', $data['status']);
+        }
+
+        if (!empty($data['date_from'])) {
+            $query->where('rent_date', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->where('return_date', '<=', $data['date_to']);
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function noPaginate(array $data): mixed

@@ -46,6 +46,28 @@ class ActivityLogRepository extends BaseRepository implements ActivityLogInterfa
             ->with(['user'])
             ->orderBy('updated_at', 'desc');
 
+        if (!empty($data['action'])) {
+            $query->where('action', $data['action']);
+        }
+
+        if (!empty($data['module'])) {
+            $query->where('module', $data['module']);
+        }
+
+        if (!empty($data['role'])) {
+            $query->whereHas('user', function ($q) use ($data) {
+                $q->role($data['role']);
+            });
+        }
+
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
+        }
+
         if (!empty($data['search'])) {
             $query->where(function ($q) use ($data) {
                 $q->where('description', 'like', '%' . $data['search'] . '%');
