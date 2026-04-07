@@ -9,14 +9,20 @@ use Illuminate\Notifications\Notification;
 
 class RentalNotification extends Notification
 {
-    use Queueable;
+    private $title;
+    private $message;
+    private $rentalId;
+    private $type;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct()
+    public function __construct($title, $message, $rentalId, $type = 'info')
     {
-        //
+        $this->title = $title;
+        $this->message = $message;
+        $this->rentalId = $rentalId;
+        $this->type = $type;
     }
 
     /**
@@ -26,18 +32,7 @@ class RentalNotification extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['mail'];
-    }
-
-    /**
-     * Get the mail representation of the notification.
-     */
-    public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->line('The introduction to the notification.')
-            ->action('Notification Action', url('/'))
-            ->line('Thank you for using our application!');
+        return ['database'];
     }
 
     /**
@@ -48,7 +43,10 @@ class RentalNotification extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            //
+            'title' => $this->title,
+            'message' => $this->message,
+            'rental_id' => $this->rentalId,
+            'type' => $this->type, // info, success, warning, error
         ];
     }
 }

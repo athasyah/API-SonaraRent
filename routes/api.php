@@ -12,6 +12,7 @@ use App\Http\Controllers\InstrumentController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PenaltyController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
@@ -136,4 +137,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('penalty/no-paginate', [PenaltyController::class, 'noPaginate'])->name('penalty-no-paginate');
         Route::resource('penalty', PenaltyController::class);
     });
+
+    //Route Notification
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::put('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
 });

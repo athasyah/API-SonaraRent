@@ -16,12 +16,17 @@ use App\Helpers\Response;
 use App\Http\Requests\RentalRequest;
 use App\Http\Requests\StatusRentalRequest;
 use App\Http\Resources\RentalResource;
-use App\Models\rental;
+use App\Models\User;
+use App\Models\Setting;
+use App\Models\Rental;
+use App\Notifications\RentalNotification;
+use App\Enums\RoleEnum;
 use App\Services\ActivityLogService;
 use App\Services\PenaltyService;
 use App\Services\RentalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 
 class RentalController extends Controller
@@ -130,6 +135,15 @@ class RentalController extends Controller
             $customerName = $rental->customer?->name ?? 'Customer';
             $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::RENTAL->value, 'Membuat data Rental untuk ' . $customerName . ' dengan total harga Rp ' . number_format($totalPrice, 0, ',', '.'));
             $this->logInterface->store($log);
+
+            // Notify Admin and Staff
+            $recipients = User::role([RoleEnum::ADMIN->value, RoleEnum::STAFF->value])->get();
+            Notification::send($recipients, new RentalNotification(
+                'Pesanan Baru!',
+                "Pesanan baru dari {$customerName} seharga Rp " . number_format($totalPrice, 0, ',', '.'),
+                $rental->id,
+                'info'
+            ));
 
             DB::commit();
             $rental->load(['details', 'customer']);
@@ -274,6 +288,8 @@ class RentalController extends Controller
         $validate = $request->validated();
         $newStatus = $validate['status'];
         $oldStatus = $rental->status;
+        \Illuminate\Support\Facades\Log::info("Rental Status Change Attempt: [{$id}] {$oldStatus} -> {$newStatus}");
+        
         $customerName = $rental->customer?->name ?? 'Customer tidak diketahui';
         $rentalPeriod = \Carbon\Carbon::parse($rental->rent_date)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($rental->return_date)->format('d M Y');
         $allowedTransitions = [
@@ -324,6 +340,12 @@ class RentalController extends Controller
         try {
             $updateData = ['status' => $newStatus];
 
+            // If moving from PENDING to RESERVED or ONGOING, also mark as paid
+            if ($oldStatus === StatusEnum::PENDING->value && 
+                ($newStatus === StatusEnum::RESERVED->value || $newStatus === StatusEnum::ONGOING->value)) {
+                $updateData['payment_status'] = 'paid';
+            }
+
             // Handle Guarantee Upload if provided (for transition to ONGOING)
             if ($newStatus === StatusEnum::ONGOING->value && $request->hasFile('guarantee_image')) {
                 $file = $request->file('guarantee_image');
@@ -366,6 +388,31 @@ class RentalController extends Controller
                 $logMessage
             );
             $this->logInterface->store($log);
+
+            // Notify Customer
+            if ($rental->customer) {
+                $statusLabel = $newStatus;
+                $statusDescription = "Status pesanan Anda telah berubah menjadi " . strtoupper($newStatus);
+                $type = 'info';
+
+                if ($newStatus === StatusEnum::ONGOING->value) {
+                    $statusDescription = "Pesanan Anda sedang berlangsung. Nikmati waktu Anda!";
+                    $type = 'success';
+                } elseif ($newStatus === StatusEnum::RETURNED->value) {
+                    $statusDescription = "Pesanan Anda telah berhasil dikembalikan. Terima kasih!";
+                    $type = 'success';
+                } elseif ($newStatus === StatusEnum::CANCELLED->value) {
+                    $statusDescription = "Pesanan Anda telah dibatalkan.";
+                    $type = 'error';
+                }
+
+                $rental->customer->notify(new RentalNotification(
+                    "Pembaruan Pesanan!",
+                    $statusDescription,
+                    $rental->id,
+                    $type
+                ));
+            }
 
             DB::commit();
             return Response::Ok('Berhasil mengubah status rental', $updatedRental);

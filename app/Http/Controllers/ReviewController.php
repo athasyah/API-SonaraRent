@@ -14,10 +14,14 @@ use App\Http\Requests\ReviewRequest;
 use App\Http\Resources\ReviewResource;
 use App\Models\Rental;
 use App\Models\review;
+use App\Models\User;
+use App\Notifications\RentalNotification;
+use App\Enums\RoleEnum;
 use App\Services\ActivityLogService;
 use App\Services\ReviewService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class ReviewController extends Controller
 {
@@ -87,6 +91,15 @@ class ReviewController extends Controller
             $data->load(['customer', 'instrument']);
             $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::REVIEW->value, 'Memberi review untuk instrumen "' . $data->instrument->name . '" oleh ' . $data->customer->name);
             $this->logInterface->store($log);
+
+            // Notify Admin and Staff
+            $recipients = User::role([RoleEnum::ADMIN->value, RoleEnum::STAFF->value])->get();
+            Notification::send($recipients, new RentalNotification(
+                'Review Baru!',
+                "{$data->customer->name} memberikan review {$data->rating} bintang untuk {$data->instrument->name}",
+                $data->rental_id,
+                'info'
+            ));
 
             DB::commit();
             return Response::Ok('Berhasil menambahkan data review', $data);
