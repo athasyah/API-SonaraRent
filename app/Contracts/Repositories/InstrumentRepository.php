@@ -113,8 +113,7 @@ class InstrumentRepository extends BaseRepository implements InstrumentInterface
     {
         $query = $this->model->query()
             ->orderBy('updated_at', 'desc')
-            ->with(['category', 'brand'])
-            ->get();
+            ->with(['category', 'brandCategory', 'reviews']);
 
         if (!empty($data['category'])) {
             $query->whereHas('category', function ($q) use ($data) {
@@ -135,7 +134,9 @@ class InstrumentRepository extends BaseRepository implements InstrumentInterface
         }
 
         if (!empty($data['brand'])) {
-            $query->where('brand', $data['brand']);
+            $query->whereHas('brandCategory', function ($q) use ($data) {
+                $q->where('name', $data['brand']);
+            });
         }
 
         if (!empty($data['search'])) {
@@ -163,7 +164,7 @@ class InstrumentRepository extends BaseRepository implements InstrumentInterface
             });
         }
 
-        return $query;
+        return $query->get();
     }
 
     public function updateStatus($id, $status)

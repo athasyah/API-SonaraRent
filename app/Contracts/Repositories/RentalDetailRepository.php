@@ -77,7 +77,6 @@ class RentalDetailRepository extends BaseRepository implements RentalDetailInter
             ->whereHas('rental', function ($query) use ($rentDate, $returnDate) {
                 $query->whereIn('status', [
                     StatusEnum::RESERVED->value,
-                    StatusEnum::APPROVED->value,
                     StatusEnum::ONGOING->value,
                 ])
                     ->where('rent_date', '<=', $returnDate)

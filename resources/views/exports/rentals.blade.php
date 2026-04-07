@@ -33,7 +33,9 @@
                 <th>Tgl Kembali (Rencana)</th>
                 <th>Tgl Kembali (Aktual)</th>
                 <th>Instrumen</th>
+                @if(!($hideStatus ?? false))
                 <th>Status</th>
+                @endif
                 <th>Harga Sewa</th>
                 <th>Denda</th>
                 <th>Keterangan Denda</th>
@@ -51,7 +53,9 @@
                 <td>{{ \Carbon\Carbon::parse($rental->return_date)->format('d/m/Y') }}</td>
                 <td>{{ $rental->actual_return_date ? \Carbon\Carbon::parse($rental->actual_return_date)->format('d/m/Y H:i') : '-' }}</td>
                 <td>{{ $rental->details->map(fn($d) => $d->instrument->name ?? '')->filter()->implode(', ') ?: '-' }}</td>
+                @if(!($hideStatus ?? false))
                 <td class="status-{{ $rental->status }}">{{ ucfirst($rental->status) }}</td>
+                @endif
                 <td>Rp {{ number_format($rental->total_price, 0, ',', '.') }}</td>
                 <td style="{{ $penaltyAmount > 0 ? 'color: #dc2626; font-weight: bold;' : '' }}">
                     Rp {{ number_format($penaltyAmount, 0, ',', '.') }}

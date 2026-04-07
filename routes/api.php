@@ -10,7 +10,9 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InstrumentConditionController;
 use App\Http\Controllers\InstrumentController;
 use App\Http\Controllers\RentalController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\PenaltyController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user/{id}/change-password', [AuthController::class, 'changePassword']);
 });
 
+Route::get('review/no-paginate', [ReviewController::class, 'noPaginate'])->name('review-no-paginate');
+Route::get('instrument/no-paginate', [InstrumentController::class, 'noPaginate'])->name('instrument-no-paginate');
+
+
 Route::middleware('auth:sanctum')->group(function () {
 
     //Endpoint Role Admin
@@ -44,7 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::resource('category', CategoryController::class);
 
         //Route Instrument
-        Route::get('instrument/no-paginate', [InstrumentController::class, 'noPaginate'])->name('instrument-no-paginate');
         Route::post('instrument/{id}', [InstrumentController::class, 'update'])->name('instrument-update');
         Route::resource('instrument', InstrumentController::class);
 
@@ -55,12 +60,19 @@ Route::middleware('auth:sanctum')->group(function () {
         //Route Dashboard Admin
         Route::get('dashboard/admin', [DashboardController::class, 'admin'])->name('dashboard-admin');
 
+        //Route Report (Admin)
+        Route::get('report/popular', [ReportController::class, 'popularInstruments'])->name('report-popular');
+
         //Route Export (Admin)
         Route::prefix('export')->group(function () {
             Route::get('rentals', [ExportController::class, 'rentals'])->name('export-rentals');
             Route::get('instruments', [ExportController::class, 'instruments'])->name('export-instruments');
             Route::get('users', [ExportController::class, 'users'])->name('export-users');
             Route::get('reviews', [ExportController::class, 'reviews'])->name('export-reviews');
+            Route::get('revenue', [ExportController::class, 'revenue'])->name('export-revenue');
+            Route::get('popular-instruments', [ExportController::class, 'popularInstruments'])->name('export-popular-instruments');
+            Route::get('sales-trend', [ExportController::class, 'salesTrend'])->name('export-sales-trend');
+            Route::get('penalties', [ExportController::class, 'penalties'])->name('export-penalties');
         });
 
         //Route Settings (Admin)
@@ -75,6 +87,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         //Route Status Rental
         Route::put('/rental/{id}/status', [RentalController::class, 'statusRental'])->name('rental-status');
+        Route::put('/rental/{id}/pay', [RentalController::class, 'markAsPaid'])->name('rental-pay');
+        Route::post('/rental/{id}/guarantee', [RentalController::class, 'uploadGuarantee'])->name('rental-guarantee');
 
         //Route Instrument Condition
         Route::get('/instrument-condition/no-paginate', [InstrumentConditionController::class, 'noPaginate'])->name('instrument-condition-no-paginate');
@@ -88,13 +102,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         //Route Export (Staff)
         Route::get('export/rentals', [ExportController::class, 'rentals'])->name('staff-export-rentals');
+
+        //Route Report (Staff)
+        Route::get('report', [ReportController::class, 'index'])->name('report-index');
     });
 
     //Endpoint Role Customer
     Route::middleware(['role:' . RoleEnum::CUSTOMER->value . '|' . RoleEnum::ADMIN->value])->group(function () {
 
         //Route Instrument
-        Route::get('instrument/no-paginate', [InstrumentController::class, 'noPaginate'])->name('instrument-no-paginate');
         Route::get('instrument', [InstrumentController::class, 'index']);
 
         //Route User
@@ -103,11 +119,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
 
         //Route Review
-        Route::get('review/no-paginate', [ReviewController::class, 'noPaginate'])->name('review-no-paginate');
         Route::resource('review', ReviewController::class);
     });
     //Route Rental
     Route::get('my/rental', [RentalController::class, 'getByUser'])->name('my-rental');
+    Route::post('/rental/{id}/simulate-payment', [RentalController::class, 'simulatePayment'])->name('rental-simulate-payment');
 
     Route::get('/cart/availability', [CartController::class, 'availability']);
 
@@ -115,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['role:' . RoleEnum::ADMIN->value . '|' . RoleEnum::STAFF->value . '|' . RoleEnum::CUSTOMER->value])->group(function () {
         Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');
         Route::resource('rental', RentalController::class);
+
+        Route::get('penalty/no-paginate', [PenaltyController::class, 'noPaginate'])->name('penalty-no-paginate');
+        Route::resource('penalty', PenaltyController::class);
     });
 });
-

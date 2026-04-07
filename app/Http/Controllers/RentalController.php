@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Contracts\Interfaces\ActivityLogInterface;
-use App\Contracts\Interfaces\GuaranteeInterface;
 use App\Contracts\Interfaces\InstrumentInterface;
 use App\Contracts\Interfaces\PenaltyInterface;
 use App\Contracts\Interfaces\RentalDetailInterface;
@@ -19,21 +18,19 @@ use App\Http\Requests\StatusRentalRequest;
 use App\Http\Resources\RentalResource;
 use App\Models\rental;
 use App\Services\ActivityLogService;
-use App\Services\GuaranteeService;
 use App\Services\PenaltyService;
 use App\Services\RentalService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class RentalController extends Controller
 {
-    private $rentalInterface, $rentalService, $rentDetailInterface, $guaranteeInterface, $guaranteeService, $logService, $logInterface, $penaltyService, $penaltyInterface, $instrumentInterface;
+    private $rentalInterface, $rentalService, $rentDetailInterface, $logService, $logInterface, $penaltyService, $penaltyInterface, $instrumentInterface;
     public function __construct(
         RentalInterface $rentalInterface,
         RentalService $rentalService,
         RentalDetailInterface $rentalDetailInterface,
-        GuaranteeInterface $guaranteeInterface,
-        GuaranteeService $guaranteeService,
         ActivityLogService $logService,
         ActivityLogInterface $logInterface,
         PenaltyService $penaltyService,
@@ -43,8 +40,6 @@ class RentalController extends Controller
         $this->rentalInterface = $rentalInterface;
         $this->rentalService = $rentalService;
         $this->rentDetailInterface = $rentalDetailInterface;
-        $this->guaranteeInterface = $guaranteeInterface;
-        $this->guaranteeService = $guaranteeService;
         $this->logService = $logService;
         $this->logInterface = $logInterface;
         $this->penaltyInterface = $penaltyInterface;
@@ -124,17 +119,9 @@ class RentalController extends Controller
                 $this->rentDetailInterface->store($detail);
             }
 
-            if ($request->has('guarantee')) {
-                $mapGuarantee = $this->guaranteeService->mapGuarantee($request->guarantee, $rental->id);
-                $this->guaranteeInterface->store($mapGuarantee);
-            }
-
             $customerName = $rental->customer?->name ?? 'Customer';
             $log = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::RENTAL->value, 'Membuat data Rental untuk ' . $customerName . ' dengan total harga Rp ' . number_format($totalPrice, 0, ',', '.'));
             $this->logInterface->store($log);
-
-            $log1 = $this->logService->logActivity(ActionEnum::CREATE->value, ModuleEnum::GUARANTEE->value, 'Membuat data Guarantee');
-            $this->logInterface->store($log1);
 
             DB::commit();
             $rental->load(['details', 'customer']);
@@ -283,17 +270,16 @@ class RentalController extends Controller
         $rentalPeriod = \Carbon\Carbon::parse($rental->rent_date)->format('d M Y') . ' - ' . \Carbon\Carbon::parse($rental->return_date)->format('d M Y');
         $allowedTransitions = [
             StatusEnum::PENDING->value => [
-                StatusEnum::APPROVED->value,
                 StatusEnum::CANCELLED->value,
-            ],
-            StatusEnum::APPROVED->value => [
+                StatusEnum::RESERVED->value,
                 StatusEnum::ONGOING->value,
-            ],
-            StatusEnum::ONGOING->value => [
-                StatusEnum::RETURNED->value,
             ],
             StatusEnum::RESERVED->value => [
                 StatusEnum::ONGOING->value,
+                StatusEnum::CANCELLED->value,
+            ],
+            StatusEnum::ONGOING->value => [
+                StatusEnum::RETURNED->value,
             ],
         ];
 
@@ -307,11 +293,35 @@ class RentalController extends Controller
             );
         }
 
+        if ($newStatus === StatusEnum::ONGOING->value) {
+            if ($rental->payment_status !== 'paid') {
+                return Response::Error('Tidak dapat diubah ke ONGOING. Pembayaran belum lunas.', null);
+            }
+
+            // Only require if not already uploaded
+            if (empty($rental->guarantee_image) && !$request->hasFile('guarantee_image')) {
+                return Response::Error('Tidak dapat diubah ke ONGOING. Foto identitas/jaminan belum diunggah petugas.', null);
+            }
+        }
+
         DB::beginTransaction();
         try {
             $updateData = ['status' => $newStatus];
+
+            // Handle Guarantee Upload if provided (for transition to ONGOING)
+            if ($newStatus === StatusEnum::ONGOING->value && $request->hasFile('guarantee_image')) {
+                $file = $request->file('guarantee_image');
+                $path = $file->store('guarantees', 'public');
+
+                $updateData['guarantee_image'] = $path;
+                $updateData['guarantee_type'] = $request->guarantee_type ?? 'KTP';
+                $updateData['guarantee_taken_at'] = \Carbon\Carbon::now();
+                $updateData['guarantee_taken_by'] = auth()->id();
+            }
+
             if ($newStatus === StatusEnum::RETURNED->value) {
                 $updateData['actual_return_date'] = \Carbon\Carbon::now();
+                $updateData['returned_by_user'] = auth()->id();
             }
 
             $updatedRental = $this->rentalInterface->update($id, $updateData);
@@ -348,6 +358,79 @@ class RentalController extends Controller
         }
     }
 
+    public function markAsPaid(string $id)
+    {
+        $rental = $this->rentalInterface->show($id);
+        if (!$rental) {
+            return Response::NotFound('Rental tidak ditemukan');
+        }
+
+        DB::beginTransaction();
+        try {
+            $updatedRental = $this->rentalInterface->update($id, [
+                'payment_status' => 'paid',
+                'status' => 'reserved' // or StatusEnum::RESERVED->value
+            ]);
+
+            $log = $this->logService->logActivity(
+                ActionEnum::UPDATE->value,
+                ModuleEnum::RENTAL->value,
+                "Menandai pembayaran lunas untuk rental ID: " . $id
+            );
+            $this->logInterface->store($log);
+
+            DB::commit();
+            return Response::Ok('Berhasil menandai pembayaran lunas', $updatedRental);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return Response::Error('Terjadi kesalahan saat menandai pembayaran', $th->getMessage());
+        }
+    }
+
+    public function uploadGuarantee(Request $request, string $id)
+    {
+        $request->validate([
+            'guarantee_type' => 'required|string',
+            'guarantee_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120'
+        ], [
+            'guarantee_type.required' => 'Tipe jaminan harus diisi',
+            'guarantee_image.required' => 'Foto jaminan harus diunggah',
+            'guarantee_image.image' => 'File harus berupa gambar',
+            'guarantee_image.mimes' => 'Format gambar harus jpeg, png, jpg, webp',
+            'guarantee_image.max' => 'Ukuran gambar maksimal 5MB'
+        ]);
+
+        $rental = $this->rentalInterface->show($id);
+        if (!$rental) {
+            return Response::NotFound('Rental tidak ditemukan');
+        }
+
+        DB::beginTransaction();
+        try {
+            $imagePath = $request->file('guarantee_image')->store('guarantees', 'public');
+
+            $updatedRental = $this->rentalInterface->update($id, [
+                'guarantee_type' => $request->guarantee_type,
+                'guarantee_image' => $imagePath,
+                'guarantee_taken_at' => now(),
+                'guarantee_taken_by' => auth()->id()
+            ]);
+
+            $log = $this->logService->logActivity(
+                ActionEnum::UPDATE->value,
+                ModuleEnum::RENTAL->value,
+                "Mengunggah identitas jaminan untuk pelanggan: " . ($rental->customer?->name ?? 'Unknown')
+            );
+            $this->logInterface->store($log);
+
+            DB::commit();
+            return Response::Ok('Berhasil mengunggah jaminan', $updatedRental);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return Response::Error('Terjadi kesalahan saat mengunggah jaminan', $th->getMessage());
+        }
+    }
+
     public function getByUser(Request $request)
     {
         $payload = [];
@@ -359,6 +442,40 @@ class RentalController extends Controller
             return Response::Paginate('Berhasil mendapatkan data rental', $resource, $paginate);
         } catch (\Throwable $th) {
             return Response::Error('Gagal mendapatkan data rental', $th->getMessage());
+        }
+    }
+
+    public function simulatePayment(Request $request, string $id)
+    {
+        try {
+            $rental = $this->rentalInterface->show($id);
+            if (!$rental) {
+                return Response::NotFound('Data rental tidak ditemukan');
+            }
+
+            // Ensure the user owns this rental
+            if ($rental->customer_id !== auth()->id()) {
+                return Response::Error('Unauthorized: Anda tidak dapat mengakses pesanan ini', null);
+            }
+
+            // Update status only if not already paid
+            if ($rental->payment_status !== 'paid') {
+                $this->rentalInterface->update($id, [
+                    'payment_status' => 'paid',
+                    'status' => StatusEnum::RESERVED->value
+                ]);
+
+                $log = $this->logService->logActivity(
+                    ActionEnum::UPDATE->value,
+                    ModuleEnum::RENTAL->value,
+                    "Customer berhasil mensimulasikan pembayaran untuk pesanan #{$rental->id}"
+                );
+                $this->logInterface->store($log);
+            }
+
+            return Response::Ok('Pembayaran berhasil disimulasikan', new RentalResource($rental->refresh()));
+        } catch (\Throwable $th) {
+            return Response::Error('Terjadi kesalahan saat mensimulasikan pembayaran', $th->getMessage());
         }
     }
 }

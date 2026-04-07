@@ -28,6 +28,7 @@ class DashboardRepository implements DashboardInterface
         $this->review = $review;
         $this->user = $user;
     }
+    
     /**
      * Get statistics and charts for Admin Dashboard
      */
@@ -39,18 +40,22 @@ class DashboardRepository implements DashboardInterface
         $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
         $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
 
-        // Revenue
-        $currentRevenue = $this->rental->whereIn('status', ['ongoing', 'returned'])
+        // Revenue from RETURNED rentals only
+        $currentRevenue = $this->rental->where('status', 'returned')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('total_price');
-        $lastRevenue = $this->rental->whereIn('status', ['ongoing', 'returned'])
+        $lastRevenue = $this->rental->where('status', 'returned')
             ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
             ->sum('total_price');
         $revenuePercentage = $lastRevenue > 0 ? round((($currentRevenue - $lastRevenue) / $lastRevenue) * 100, 1) : 0;
 
-        // Total Rentals
-        $currentRentals = $this->rental->whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
-        $lastRentals = $this->rental->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        // Total Rentals (completed = returned)
+        $currentRentals = $this->rental->where('status', 'returned')
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->count();
+        $lastRentals = $this->rental->where('status', 'returned')
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->count();
         $rentalPercentage = $lastRentals > 0 ? round((($currentRentals - $lastRentals) / $lastRentals) * 100, 1) : 0;
 
         // Available Instruments
@@ -63,9 +68,10 @@ class DashboardRepository implements DashboardInterface
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->count();
 
-        // Weekly Rentals (last 7 days) - Optimized with single query & safe group by
+        // Weekly Rentals (last 7 days) - only RETURNED rentals
         $sevenDaysAgo = $now->copy()->subDays(6)->startOfDay();
         $rawWeekly = $this->rental->select(DB::raw('DATE(created_at) as date_only'), DB::raw('count(*) as count'))
+            ->where('status', 'returned')
             ->where('created_at', '>=', $sevenDaysAgo)
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('count', 'date_only');
@@ -79,14 +85,14 @@ class DashboardRepository implements DashboardInterface
             ];
         }
 
-        // Monthly Revenue (last 12 months) - Optimized with single query & safe group by
+        // Monthly Revenue (last 12 months) - only RETURNED rentals
         $twelveMonthsAgo = $now->copy()->subMonths(11)->startOfMonth();
         $rawMonthly = $this->rental->select(
                 DB::raw('YEAR(created_at) as year_num'),
                 DB::raw('MONTH(created_at) as month_num'),
                 DB::raw('SUM(total_price) as revenue')
             )
-            ->whereIn('status', ['ongoing', 'returned'])
+            ->where('status', 'returned')
             ->where('created_at', '>=', $twelveMonthsAgo)
             ->groupBy(DB::raw('YEAR(created_at)'), DB::raw('MONTH(created_at)'))
             ->get();
@@ -107,14 +113,14 @@ class DashboardRepository implements DashboardInterface
             ];
         }
 
-        // Active rentals
+        // Active rentals (ongoing)
         $activeRentals = $this->rental->where('status', 'ongoing')->count();
 
-        // Average rating
+        // Average rating (from all reviews, not filtered by rental status)
         $avgRating = $this->review->avg('rating') ?? 0;
         $totalReviews = $this->review->count();
 
-        // Rental status distribution
+        // Rental status distribution (all statuses, for pie chart)
         $statusDistribution = $this->rental->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -145,26 +151,36 @@ class DashboardRepository implements DashboardInterface
     public function staffStats(): array
     {
         $now = Carbon::now();
+        $startOfMonth = $now->copy()->startOfMonth();
+        $endOfMonth = $now->copy()->endOfMonth();
 
-        // Rental counts by status
+        // Total Counts (Total)
         $pendingCount = $this->rental->where('status', 'pending')->count();
         $approvedCount = $this->rental->where('status', 'approved')->count();
         $ongoingCount = $this->rental->where('status', 'ongoing')->count();
         $returnedCount = $this->rental->where('status', 'returned')->count();
         $cancelledCount = $this->rental->where('status', 'cancelled')->count();
 
-        // Late rentals
+        // Late Rentals (Currently ongoing that passed return_date)
         $lateRentals = $this->rental->where('status', 'ongoing')
             ->where('return_date', '<', $now)
             ->count();
 
-        // Today's activity
+        // Today's Activity
         $todayRentals = $this->rental->whereDate('created_at', $now->toDateString())->count();
         $todayReturns = $this->rental->where('status', 'returned')
             ->whereDate('updated_at', $now->toDateString())
             ->count();
+        $expectedReturnsToday = $this->rental->where('status', 'ongoing')
+            ->whereDate('return_date', $now->toDateString())
+            ->count();
 
-        // Weekly trend - Optimized with single query & safe group by
+        // Monthly Stats (Current Month)
+        $rentalsThisMonth = $this->rental->whereBetween('created_at', [$startOfMonth, $endOfMonth])->count();
+        $returnsThisMonth = $this->rental->where('status', 'returned')
+            ->whereBetween('updated_at', [$startOfMonth, $endOfMonth])
+            ->count();
+
         $sevenDaysAgo = $now->copy()->subDays(6)->startOfDay();
         
         $newRentalsRaw = $this->rental->select(DB::raw('DATE(created_at) as date_only'), DB::raw('count(*) as count'))
@@ -186,31 +202,45 @@ class DashboardRepository implements DashboardInterface
             $weeklyTrend[] = [
                 'day' => $date->locale('id')->isoFormat('ddd'),
                 'date' => $dateStr,
-                'new_rentals' => $newRentalsRaw[$dateStr] ?? 0,
+                'count' => $newRentalsRaw[$dateStr] ?? 0, // frontend uses 'count'
                 'returns' => $returnsRaw[$dateStr] ?? 0,
             ];
         }
 
-        // upcoming returns (next 3 days)
         $upcomingReturns = $this->rental->where('status', 'ongoing')
             ->whereBetween('return_date', [$now, $now->copy()->addDays(3)])
             ->with(['customer', 'details' => function($query) {
                 $query->with('instrument');
             }])
             ->orderBy('return_date')
-            ->limit(10)
-            ->get();
+            ->get()
+            ->map(function ($rental) use ($now) {
+                return [
+                    'id' => $rental->id,
+                    'customer_name' => $rental->customer?->name ?? '-',
+                    'invoice_no' => $rental->invoice_no,
+                    'return_date' => Carbon::parse($rental->return_date)->locale('id')->isoFormat('DD MMM YYYY'),
+                    'days_remaining' => $now->diffInDays(Carbon::parse($rental->return_date), false),
+                ];
+            });
 
         return [
-            'stats' => [
+            'rentals_by_status' => [
                 'pending' => $pendingCount,
                 'approved' => $approvedCount,
                 'ongoing' => $ongoingCount,
                 'returned' => $returnedCount,
                 'cancelled' => $cancelledCount,
-                'late' => $lateRentals,
-                'today_rentals' => $todayRentals,
+            ],
+            'late_rentals' => $lateRentals,
+            'today_activity' => [
+                'new_rentals' => $todayRentals,
                 'today_returns' => $todayReturns,
+                'expected_returns' => $expectedReturnsToday,
+            ],
+            'monthly_stats' => [
+                'rentals' => $rentalsThisMonth,
+                'returns' => $returnsThisMonth,
             ],
             'weekly_trend' => $weeklyTrend,
             'upcoming_returns' => $upcomingReturns,
@@ -218,12 +248,20 @@ class DashboardRepository implements DashboardInterface
     }
 
     /**
-     * Get top popular instruments based on rental counts
+     * Get top popular instruments based on rental counts from COMPLETED (returned) rentals only
      */
     public function getPopularInstruments(int $limit = 4): Collection
     {
-        // Use a subquery to find popular instrument IDs and counts
+        // Subquery: get rental IDs that have status 'returned'
+        $returnedRentalIds = $this->rental->where('status', 'returned')->pluck('id');
+        
+        if ($returnedRentalIds->isEmpty()) {
+            return collect();
+        }
+        
+        // Count rental details only for those returned rentals
         $popularData = $this->rentalDetail->select('instrument_id', DB::raw('count(*) as rental_count'))
+            ->whereIn('rental_id', $returnedRentalIds)
             ->groupBy('instrument_id')
             ->orderByDesc('rental_count')
             ->limit($limit)

@@ -42,18 +42,47 @@ class PenaltyRepository extends BaseRepository implements PenaltyInterface
 
     public function customPaginate(int $perPage = 10, int $page = 1, ?array $data): mixed
     {
-        return $this->model->query()
-            ->orderBy('updated_at', 'desc')
-            ->with(['rental', 'instrument', 'customer','condition'])
-            ->paginate($perPage, ['*'], 'page', $page);
+        $query = $this->model->query()
+            ->orderBy('created_at', 'desc')
+            ->with(['rental.customer', 'condition.instrument']);
+
+        if (!empty($data['search'])) {
+            $query->whereHas('rental.customer', function ($q) use ($data) {
+                $q->where('name', 'like', '%' . $data['search'] . '%');
+            });
+        }
+
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     public function noPaginate(array $data): mixed
     {
         $query = $this->model->query()
-            ->orderBy('updated_at', 'desc')
-            ->with(['rental', 'instrument', 'customer'])
-            ->get();
-        return $query;
+            ->orderBy('created_at', 'desc')
+            ->with(['rental.customer', 'condition.instrument']);
+
+        if (!empty($data['search'])) {
+            $query->whereHas('rental.customer', function ($q) use ($data) {
+                $q->where('name', 'like', '%' . $data['search'] . '%');
+            });
+        }
+
+        if (!empty($data['date_from'])) {
+            $query->whereDate('created_at', '>=', $data['date_from']);
+        }
+
+        if (!empty($data['date_to'])) {
+            $query->whereDate('created_at', '<=', $data['date_to']);
+        }
+
+        return $query->get();
     }
 }

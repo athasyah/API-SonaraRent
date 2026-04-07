@@ -26,7 +26,6 @@ class UpdateInstrumentStatus
 
         $statusMap = [
             StatusEnum::RESERVED->value  => StatusEnum::RESERVED->value,
-            StatusEnum::APPROVED->value  => StatusEnum::RESERVED->value,
             StatusEnum::ONGOING->value   => StatusEnum::RENTED->value,
             StatusEnum::RETURNED->value  => StatusEnum::AVAILABLE->value,
             StatusEnum::CANCELLED->value => StatusEnum::AVAILABLE->value,

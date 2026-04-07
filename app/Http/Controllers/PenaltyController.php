@@ -33,18 +33,16 @@ class PenaltyController extends Controller
     {
         $per_page = $request->per_page ?? 8;
         $page = $request->page ?? 1;
-        $payload = [];
+        $payload = $request->all();
 
         try {
-
             $data = $this->penaltyInterface->customPaginate($per_page, $page, $payload);
             $resource = PenaltyResource::collection($data);
             $helper = PaginationHelper::meta($data);
 
-            return Response::Paginate('Berhasil menampilkan data kategori', $resource, $helper);
+            return Response::Paginate('Berhasil menampilkan data denda', $resource, $helper);
         } catch (\Throwable $th) {
-
-            return Response::Error('Gagal menampilkan data kategori', $th->getMessage());
+            return Response::Error('Gagal menampilkan data denda', $th->getMessage());
         }
     }
 

@@ -7,7 +7,6 @@ enum StatusEnum: string
     case AVAILABLE = 'available';
     case PENDING = 'pending';
     case RESERVED = 'reserved';
-    case APPROVED = 'approved';
     case ONGOING = 'ongoing';
     case RETURNED = 'returned';
     case CANCELLED = 'cancelled';

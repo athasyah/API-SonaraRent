@@ -180,9 +180,9 @@ class ReviewController extends Controller
         }
     }
 
-    public function noPaginate(Request $requeset)
+    public function noPaginate(Request $request)
     {
-        $payload = [];
+        $payload = $request->only(['search', 'instrument_id']);
 
         try {
             $data = $this->reviewInterface->noPaginate($payload);

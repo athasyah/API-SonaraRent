@@ -10,11 +10,13 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 class RentalsExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $data;
+    protected $hideStatus;
     private $index = 0;
 
-    public function __construct($data)
+    public function __construct($data, $hideStatus = false)
     {
         $this->data = $data;
+        $this->hideStatus = $hideStatus;
     }
 
     public function collection()
@@ -24,7 +26,7 @@ class RentalsExport implements FromCollection, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        return [
+        $headings = [
             'No',
             'Customer',
             'Tanggal Sewa',
@@ -36,11 +38,18 @@ class RentalsExport implements FromCollection, WithHeadings, WithMapping
             'Instrumen',
             'Catatan Denda'
         ];
+
+        if ($this->hideStatus) {
+            unset($headings[7]); // Remove 'Status'
+            return array_values($headings);
+        }
+
+        return $headings;
     }
 
     public function map($item): array
     {
-        return [
+        $map = [
             ++$this->index,
             $item->customer->name ?? '-',
             Carbon::parse($item->rent_date)->format('d/m/Y'),
@@ -52,5 +61,12 @@ class RentalsExport implements FromCollection, WithHeadings, WithMapping
             $item->details->pluck('instrument.name')->filter()->implode(', ') ?: '-',
             $item->penalty->pluck('reason')->filter()->implode(', ') ?: '-',
         ];
+
+        if ($this->hideStatus) {
+            unset($map[7]); // Remove status value
+            return array_values($map);
+        }
+
+        return $map;
     }
 }

@@ -18,4 +18,8 @@ class Penalty extends Model
     {
         return $this->belongsTo(InstrumentCondition::class, 'condition_id');
     }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

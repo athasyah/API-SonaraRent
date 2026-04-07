@@ -23,6 +23,13 @@ class RentalResource extends JsonResource
             'return_date' => $this->return_date,
             'total_price' => $this->total_price,
             'status' => $this->status,
+            'payment_method' => $this->payment_method,
+            'payment_status' => $this->payment_status,
+            'guarantee_type' => $this->guarantee_type,
+            'guarantee_image' => $this->guarantee_image ? url('storage/' . $this->guarantee_image) : null,
+            'guarantee_taken_by_name' => $this->guarantee_taken_by_user?->name,
+            'returned_by_name' => $this->returned_by_user_data?->name,
+            'actual_return_date' => $this->actual_return_date,
             'details' => RentalDetailResource::collection(
                 $this->whenLoaded('details')
             ),

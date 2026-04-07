@@ -25,9 +25,14 @@ class Rental extends Model
         return $this->hasMany(RentalDetail::class, 'rental_id', 'id');
     }
 
-    public function guarantees()
+    public function guarantee_taken_by_user()
     {
-        return $this->hasOne(Guarantee::class);
+        return $this->belongsTo(User::class, 'guarantee_taken_by');
+    }
+
+    public function returned_by_user_data()
+    {
+        return $this->belongsTo(User::class, 'returned_by_user');
     }
 
     public function penalty()

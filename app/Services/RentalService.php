@@ -21,7 +21,9 @@ class RentalService
             'rent_date' => $data['rent_date'],
             'return_date' => $data['return_date'],
             'total_price' => $totalPrice,
-            'status' => isset($data['guarantee']) ? StatusEnum::RESERVED->value : StatusEnum::PENDING->value,
+            'payment_method' => $data['payment_method'],
+            'payment_status' => isset($data['is_paid']) && $data['is_paid'] ? 'paid' : 'unpaid',
+            'status' => isset($data['is_paid']) && $data['is_paid'] ? StatusEnum::RESERVED->value : StatusEnum::PENDING->value,
         ];
 
         return $data;
