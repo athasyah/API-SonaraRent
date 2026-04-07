@@ -32,6 +32,8 @@ class RentalRequest extends FormRequest
             'is_paid' => 'nullable|boolean',
             'details' => 'required|array|min:1',
             'details.*.instrument_id' => 'required|string|exists:instruments,id',
+            'is_delivery' => 'nullable|boolean',
+            'delivery_address' => 'required_if:is_delivery,true|string|nullable',
         ];
     }
 
@@ -60,6 +62,7 @@ class RentalRequest extends FormRequest
             'details.*.day.required' => 'Jumlah hari sewa harus diisi.',
             'details.*.day.integer' => 'Jumlah hari sewa harus berupa angka.',
             'details.*.day.min' => 'Jumlah hari sewa minimal 1 hari.',
+            'delivery_address.required_if' => 'Alamat pengiriman harus diisi jika memilih layanan antar.',
         ];
     }
 

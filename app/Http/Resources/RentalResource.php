@@ -34,6 +34,9 @@ class RentalResource extends JsonResource
                 $this->whenLoaded('details')
             ),
             'penalty' => PenaltyResource::collection($this->whenLoaded('penalty')),
+            'is_delivery' => (bool) $this->is_delivery,
+            'delivery_address' => $this->delivery_address,
+            'cancel_reason' => $this->cancel_reason,
         ];
     }
 }

@@ -7,6 +7,7 @@ use App\Models\Instrument;
 use App\Models\Rental;
 use App\Models\Review;
 use App\Models\User;
+use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use App\Exports\ReviewsExport;
 use App\Exports\PenaltiesExport;
 use App\Models\Penalty;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ExportController extends Controller
 {
@@ -715,6 +718,31 @@ class ExportController extends Controller
             return $pdf->download('laporan-denda-' . now()->format('Y-m-d') . '.pdf');
         } catch (\Throwable $th) {
             return Response::Error('Gagal export data denda', $th->getMessage());
+        }
+    }
+
+    public function rentalReceipt(string $id)
+    {
+        try {
+            $rental = Rental::with(['customer', 'details.instrument', 'penalty'])
+                ->findOrFail($id);
+
+            $whatsappNumber = Setting::where('key', 'whatsapp_number')->first()?->value;
+
+            $pdf = Pdf::loadView('exports.rental_receipt', [
+                'rental' => $rental,
+                'whatsapp_number' => $whatsappNumber
+            ]);
+            
+            $pdf->setPaper('a4', 'portrait');
+
+            return $pdf->stream('bukti-transaksi-' . $rental->id . '.pdf');
+        } catch (\Throwable $th) {
+            Log::error('PDF Export Error: ' . $th->getMessage(), [
+                'exception' => $th,
+                'rental_id' => $id
+            ]);
+            return Response::Error('Gagal generate bukti transaksi', $th->getMessage());
         }
     }
 }

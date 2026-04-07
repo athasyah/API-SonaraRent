@@ -82,6 +82,10 @@ class RentalController extends Controller
 
         DB::beginTransaction();
         try {
+            if ($request->is_delivery && $request->payment_method === 'cash') {
+                return Response::Error('Pesanan delivery wajib menggunakan pembayaran online lunas.', null);
+            }
+
             $totalDays = $this->rentalService->calculateRentalDays(
                 $request->rent_date,
                 $request->return_date
@@ -112,6 +116,10 @@ class RentalController extends Controller
             }
 
             $map = $this->rentalService->rentalStore($validate, $totalPrice);
+            if ($request->is_delivery) {
+                $map['is_delivery'] = true;
+                $map['delivery_address'] = $request->delivery_address;
+            }
             $rental = $this->rentalInterface->store($map);
 
             foreach ($details as &$detail) {
@@ -279,6 +287,10 @@ class RentalController extends Controller
                 StatusEnum::CANCELLED->value,
             ],
             StatusEnum::ONGOING->value => [
+                StatusEnum::RETURNING->value,
+                StatusEnum::RETURNED->value,
+            ],
+            StatusEnum::RETURNING->value => [
                 StatusEnum::RETURNED->value,
             ],
         ];
@@ -299,10 +311,14 @@ class RentalController extends Controller
             }
 
             // Only require if not already uploaded
-            if (empty($rental->guarantee_image) && !$request->hasFile('guarantee_image')) {
-                return Response::Error('Tidak dapat diubah ke ONGOING. Foto identitas/jaminan belum diunggah petugas.', null);
+                if (empty($rental->guarantee_image) && !$request->hasFile('guarantee_image')) {
+                    return Response::Error('Tidak dapat diubah ke ONGOING. Foto identitas/jaminan belum diunggah petugas.', null);
+                }
             }
-        }
+
+            if ($rental->is_delivery && $newStatus === StatusEnum::RESERVED->value && $oldStatus === StatusEnum::PENDING->value) {
+                // Already passes through allowedTransitions check, this is just a reminder that it needs staff manual approval
+            }
 
         DB::beginTransaction();
         try {
@@ -322,6 +338,10 @@ class RentalController extends Controller
             if ($newStatus === StatusEnum::RETURNED->value) {
                 $updateData['actual_return_date'] = \Carbon\Carbon::now();
                 $updateData['returned_by_user'] = auth()->id();
+            }
+
+            if ($newStatus === StatusEnum::CANCELLED->value && $request->cancel_reason) {
+                $updateData['cancel_reason'] = $request->cancel_reason;
             }
 
             $updatedRental = $this->rentalInterface->update($id, $updateData);
@@ -369,7 +389,7 @@ class RentalController extends Controller
         try {
             $updatedRental = $this->rentalInterface->update($id, [
                 'payment_status' => 'paid',
-                'status' => 'reserved' // or StatusEnum::RESERVED->value
+                'status' => $rental->is_delivery ? StatusEnum::PENDING->value : StatusEnum::RESERVED->value
             ]);
 
             $log = $this->logService->logActivity(
@@ -462,7 +482,7 @@ class RentalController extends Controller
             if ($rental->payment_status !== 'paid') {
                 $this->rentalInterface->update($id, [
                     'payment_status' => 'paid',
-                    'status' => StatusEnum::RESERVED->value
+                    'status' => $rental->is_delivery ? StatusEnum::PENDING->value : StatusEnum::RESERVED->value
                 ]);
 
                 $log = $this->logService->logActivity(

@@ -127,6 +127,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/cart/availability', [CartController::class, 'availability']);
 
+    Route::get('print/rental/{id}/receipt', [ExportController::class, 'rentalReceipt'])->name('print-rental-receipt');
 
     Route::middleware(['role:' . RoleEnum::ADMIN->value . '|' . RoleEnum::STAFF->value . '|' . RoleEnum::CUSTOMER->value])->group(function () {
         Route::get('rental/no-paginate', [RentalController::class, 'noPaginate'])->name('rental-no-paginate');

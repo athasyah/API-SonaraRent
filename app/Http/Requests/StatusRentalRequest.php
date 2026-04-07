@@ -26,7 +26,8 @@ class StatusRentalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'required|string|in:reserved,cancelled,ongoing,returned',
+            'status' => 'required|string|in:reserved,cancelled,ongoing,returning,returned',
+            'cancel_reason' => 'required_if:status,cancelled|string|nullable',
         ];
     }
 
@@ -35,7 +36,7 @@ class StatusRentalRequest extends FormRequest
         return [
             'status.required' => 'Status rental wajib diisi.',
             'status.string'   => 'Status rental harus berupa teks.',
-            'status.in'       => 'Status rental tidak valid. Pilihan yang diperbolehkan: reserved, cancelled, ongoing, atau returned.',
+            'status.in'       => 'Status rental tidak valid. Pilihan yang diperbolehkan: reserved, cancelled, ongoing, returning, atau returned.',
         ];
     }
 

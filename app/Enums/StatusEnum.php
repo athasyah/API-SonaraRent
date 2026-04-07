@@ -13,5 +13,6 @@ enum StatusEnum: string
     case RENTED = 'rented';
     case MAINTENANCE = 'maintenance';
     case DAMAGED = 'damaged';
+    case RETURNING = 'returning';
 
 }

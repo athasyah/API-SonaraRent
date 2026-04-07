@@ -38,7 +38,7 @@ class InstrumentRequest extends FormRequest
             'name' => 'required|string|max:255',
             'price_per_day' => 'required|integer',
             'status' => 'required|in:available,rented,maintenance,damaged',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:20000',
             'description' => 'nullable|string',
         ];
     }
@@ -64,7 +64,7 @@ class InstrumentRequest extends FormRequest
 
             'image.image' => 'File yang diunggah harus berupa gambar.',
             'image.mimes' => 'Format gambar harus jpeg, png, jpg, atau webp.',
-            'image.max' => 'Ukuran gambar maksimal 5 MB.',
+            'image.max' => 'Ukuran gambar maksimal 20 MB.',
         ];
     }
 
