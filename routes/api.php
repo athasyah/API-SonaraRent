@@ -39,6 +39,7 @@ Route::get('instrument/no-paginate', [InstrumentController::class, 'noPaginate']
 
 Route::middleware('auth:sanctum')->group(function () {
 
+
     //Endpoint Role Admin
     Route::middleware(['role:' . RoleEnum::ADMIN->value])->group(function () {
 
@@ -50,9 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('category/no-paginate', [CategoryController::class, 'noPaginate'])->name('category-no-paginate');
         Route::resource('category', CategoryController::class);
 
-        //Route Instrument
-        Route::post('instrument/{id}', [InstrumentController::class, 'update'])->name('instrument-update');
-        Route::resource('instrument', InstrumentController::class);
+
 
         //Route Activity Log
         Route::get('activity-log/no-paginate', [ActivityLogController::class, 'noPaginate'])->name('activity-log-no-paginate');
@@ -113,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         //Route Instrument
         Route::get('instrument', [InstrumentController::class, 'index']);
+        Route::get('instrument/{id}', [InstrumentController::class, 'show']);
 
         //Route User
         Route::post('user/{id}', [UserController::class, 'update']);
@@ -143,4 +143,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::put('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+
+    //Route Instrument
+    Route::post('instrument/{id}', [InstrumentController::class, 'update'])->name('instrument-update');
+    Route::resource('instrument', InstrumentController::class);
 });
