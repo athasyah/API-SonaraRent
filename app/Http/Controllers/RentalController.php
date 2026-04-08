@@ -285,6 +285,21 @@ class RentalController extends Controller
             return Response::NotFound('Rental tidak ditemukan');
         }
 
+        // Authorization check
+        $user = auth()->user();
+        if ($user->hasRole(RoleEnum::CUSTOMER->value)) {
+            // Customer can only cancel or request return
+            $allowedForCustomer = [StatusEnum::CANCELLED->value, StatusEnum::RETURNING->value];
+            if (!in_array($request->status, $allowedForCustomer)) {
+                return Response::Error('Unauthorized: Anda tidak memiliki akses untuk aksi ini', null);
+            }
+
+            // Customer can only update their own rental
+            if ($rental->customer_id !== $user->id) {
+                return Response::Error('Unauthorized: Anda tidak dapat mengakses pesanan ini', null);
+            }
+        }
+
         $validate = $request->validated();
         $newStatus = $validate['status'];
         $oldStatus = $rental->status;
