@@ -1,522 +1,268 @@
-# API SonaraRent
+# SonaraRent API
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel\&logoColor=white)](https://laravel.com/)
 [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php\&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**SonaraRent API** adalah RESTful API untuk sistem penyewaan alat musik. API ini menyediakan layanan untuk mengelola pengguna, instrumen musik, kategori, keranjang, penyewaan, pembayaran, denda, ulasan, notifikasi, laporan, serta aktivitas sistem.
+**SonaraRent** adalah sistem penyewaan alat musik berbasis web yang dirancang untuk membantu proses pengelolaan penyewaan instrumen musik secara terintegrasi.
 
-Backend dikembangkan menggunakan **Laravel 12** dengan autentikasi berbasis **Laravel Sanctum** dan manajemen role menggunakan **Spatie Laravel Permission**.
+Project ini berfokus pada pengembangan **backend REST API** yang menangani proses utama dalam sistem rental, mulai dari pengelolaan instrumen, pelanggan, transaksi penyewaan, pembayaran, jaminan, denda, hingga laporan dan aktivitas sistem.
+
+---
+
+## Tentang SonaraRent
+
+Proses penyewaan alat musik dapat melibatkan banyak tahapan, seperti pengecekan ketersediaan instrumen, pencatatan data penyewa, pengelolaan transaksi, pembayaran, pengembalian barang, hingga pencatatan kondisi instrumen.
+
+SonaraRent dikembangkan untuk menyediakan satu sistem terintegrasi yang dapat menangani proses tersebut secara terstruktur melalui REST API.
+
+Sistem memiliki beberapa jenis pengguna dengan kebutuhan dan hak akses yang berbeda, yaitu **Admin, Staff, dan Customer**.
+
+Customer dapat menggunakan sistem untuk mencari instrumen dan melakukan penyewaan, sedangkan Staff menangani proses operasional rental. Admin memiliki akses terhadap pengelolaan sistem dan data secara lebih luas.
+
+---
+
+## Tujuan Project
+
+SonaraRent dikembangkan dengan beberapa tujuan utama:
+
+* Mempermudah proses penyewaan alat musik.
+* Mengelola data instrumen dan ketersediaannya secara terpusat.
+* Mengelola transaksi rental secara terstruktur.
+* Mendukung proses pembayaran dan jaminan penyewaan.
+* Mencatat kondisi instrumen sebelum dan sesudah penyewaan.
+* Mengelola denda apabila terjadi keterlambatan atau masalah pada rental.
+* Menyediakan laporan dan statistik untuk membantu pengelolaan bisnis rental.
+* Menyediakan backend API yang dapat digunakan oleh aplikasi frontend.
+
+---
 
 ## Fitur Utama
 
-* 🔐 **Authentication & Authorization**
+### 🎸 Instrument Management
 
-  * Register dan login
-  * Verifikasi OTP
-  * Lupa dan reset password
-  * Change password
-  * Token authentication menggunakan Laravel Sanctum
-  * Role-based access control
+Mengelola seluruh data instrumen yang tersedia untuk disewakan, termasuk:
 
-* 🎸 **Instrument Management**
+* Data instrumen
+* Kategori instrumen
+* Kondisi instrumen
+* Harga rental
+* Ketersediaan instrumen
 
-  * Mengelola data instrumen musik
-  * Kategori instrumen
-  * Kondisi instrumen
-  * Pengecekan ketersediaan instrumen
+Sistem juga menyediakan pengecekan ketersediaan instrumen sebelum proses rental dilakukan.
 
-* 🛒 **Cart & Rental**
+### 👤 User & Role Management
 
-  * Mengelola keranjang penyewaan
-  * Mengecek ketersediaan instrumen
-  * Membuat dan mengelola transaksi rental
-  * Melihat riwayat rental pengguna
-  * Perubahan status rental
-  * Pembayaran rental
-  * Upload jaminan rental
-  * Simulasi pembayaran
+SonaraRent menerapkan sistem role untuk membedakan hak akses setiap pengguna.
 
-* ⭐ **Review**
+| Role         | Tanggung Jawab                                                         |
+| ------------ | ---------------------------------------------------------------------- |
+| **Admin**    | Mengelola sistem, pengguna, data master, laporan, dan konfigurasi      |
+| **Staff**    | Menangani operasional rental, pembayaran, instrumen, dan transaksi     |
+| **Customer** | Melihat instrumen, melakukan rental, pembayaran, dan memberikan review |
 
-  * Membuat dan mengelola ulasan
-  * Melihat ulasan instrumen
+### 🛒 Rental Management
 
-* ⚠️ **Penalty**
+Merupakan salah satu bagian utama SonaraRent yang menangani siklus penyewaan instrumen.
 
-  * Pengelolaan denda
-  * Data denda berdasarkan transaksi rental
-
-* 🔔 **Notification**
-
-  * Melihat notifikasi
-  * Menandai notifikasi sebagai telah dibaca
-  * Menandai seluruh notifikasi sebagai telah dibaca
-  * Menghapus notifikasi
-
-* 📊 **Dashboard & Reporting**
-
-  * Dashboard Admin
-  * Dashboard Staff
-  * Laporan rental
-  * Laporan instrumen populer
-  * Statistik pendapatan
-  * Tren penjualan
-  * Laporan denda
-
-* 📥 **Export**
-
-  * Export data rental
-  * Export instrumen
-  * Export pengguna
-  * Export review
-  * Export revenue
-  * Export instrumen populer
-  * Export sales trend
-  * Export penalty
-
-* 🧾 **Receipt**
-
-  * Generate dan mencetak receipt transaksi rental
-
-## Role & Access
-
-SonaraRent menggunakan tiga role utama:
-
-| Role       | Deskripsi                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------ |
-| `admin`    | Mengelola pengguna, kategori, sistem, laporan, export, dan konfigurasi                     |
-| `staff`    | Mengelola operasional rental, pembayaran, kondisi instrumen, dan laporan                   |
-| `customer` | Melihat instrumen, melakukan rental, pembayaran, review, dan mengelola data rental pribadi |
-
-Authorization diterapkan menggunakan middleware role sehingga endpoint tertentu hanya dapat diakses oleh role yang sesuai.
-
-## API Modules
-
-Endpoint API dikelompokkan berdasarkan fungsi dan role pengguna.
-
-### Authentication
+Proses rental mencakup:
 
 ```text
-POST /api/login
-POST /api/register
-POST /api/auth/verify-otp
-POST /api/auth/forgot-password
-POST /api/auth/reset-password
-POST /api/logout
-GET  /api/me
+Pilih Instrumen
+      ↓
+Cek Ketersediaan
+      ↓
+Keranjang Rental
+      ↓
+Buat Transaksi
+      ↓
+Jaminan & Pembayaran
+      ↓
+Instrumen Disewakan
+      ↓
+Pengembalian
+      ↓
+Pengecekan Kondisi
+      ↓
+Selesai / Denda
 ```
 
-### Instruments
+### 💳 Payment
+
+Sistem menangani proses pembayaran transaksi rental dan menyediakan mekanisme untuk mencatat status pembayaran.
+
+Payment flow dirancang agar status transaksi dapat mengikuti proses rental secara terstruktur.
+
+### 🛡️ Guarantee Management
+
+Karena instrumen musik merupakan barang yang disewakan, sistem menyediakan mekanisme **jaminan rental**.
+
+Data jaminan dikaitkan dengan transaksi sehingga dapat digunakan sebagai bagian dari proses verifikasi dan pengelolaan rental.
+
+### ⚠️ Penalty Management
+
+SonaraRent menyediakan pengelolaan denda yang berkaitan dengan transaksi rental.
+
+Denda dapat digunakan untuk mencatat konsekuensi dari kondisi tertentu dalam proses penyewaan, seperti masalah pada pengembalian atau kondisi instrumen.
+
+### ⭐ Review & Rating
+
+Customer dapat memberikan review terhadap instrumen yang telah digunakan.
+
+Fitur ini membantu menyediakan feedback dari pengguna terhadap instrumen yang tersedia dalam sistem.
+
+### 🔔 Notification
+
+Sistem menyediakan notifikasi untuk memberikan informasi kepada pengguna terkait aktivitas atau perubahan yang terjadi dalam sistem rental.
+
+### 📊 Dashboard & Reporting
+
+Admin dan Staff dapat memperoleh informasi mengenai aktivitas rental melalui dashboard dan laporan.
+
+Beberapa informasi yang tersedia meliputi:
+
+* Statistik transaksi rental
+* Pendapatan
+* Instrumen populer
+* Tren penjualan
+* Data denda
+* Aktivitas rental
+
+---
+
+## Backend Architecture
+
+SonaraRent dibangun sebagai **RESTful API** menggunakan Laravel.
+
+Struktur backend menerapkan pemisahan tanggung jawab antara beberapa layer:
 
 ```text
-GET    /api/instrument
-GET    /api/instrument/{id}
-POST   /api/instrument
-PUT    /api/instrument/{id}
-DELETE /api/instrument/{id}
-
-GET    /api/instrument/no-paginate
-GET    /api/instrument-condition/no-paginate
+                    Client
+                      │
+                      ▼
+                   API Route
+                      │
+                      ▼
+                  Middleware
+                      │
+                      ▼
+                  Controller
+                      │
+                      ▼
+                    Service
+                      │
+                      ▼
+                  Repository
+                      │
+                      ▼
+                    Model
+                      │
+                      ▼
+                   Database
 ```
 
-### Categories
+### Controller
 
-```text
-GET    /api/category
-POST   /api/category
-GET    /api/category/{id}
-PUT    /api/category/{id}
-DELETE /api/category/{id}
-```
+Controller bertanggung jawab menerima HTTP request dan mengembalikan response kepada client.
 
-### Rental
+### Service
 
-```text
-GET    /api/rental
-POST   /api/rental
-GET    /api/rental/{id}
-PUT    /api/rental/{id}
-DELETE /api/rental/{id}
+Service menangani **business logic** dari sistem sehingga proses bisnis tidak menumpuk di dalam Controller.
 
-GET    /api/my/rental
-PUT    /api/rental/{id}/status
-PUT    /api/rental/{id}/pay
-POST   /api/rental/{id}/guarantee
-POST   /api/rental/{id}/simulate-payment
-```
+### Repository
 
-### Cart
+Repository digunakan sebagai layer untuk mengelola interaksi dengan database dan memisahkan database access dari business logic.
 
-```text
-GET /api/cart/availability
-```
+### Model
 
-### Review
+Model merepresentasikan data dan relasi yang digunakan dalam sistem.
 
-```text
-GET    /api/review
-POST   /api/review
-GET    /api/review/{id}
-PUT    /api/review/{id}
-DELETE /api/review/{id}
+Pendekatan ini digunakan agar setiap bagian aplikasi memiliki tanggung jawab yang lebih jelas serta lebih mudah dikembangkan dan dipelihara.
 
-GET    /api/review/no-paginate
-```
-
-### Penalty
-
-```text
-GET    /api/penalty
-POST   /api/penalty
-GET    /api/penalty/{id}
-PUT    /api/penalty/{id}
-DELETE /api/penalty/{id}
-
-GET    /api/penalty/no-paginate
-```
-
-### Notifications
-
-```text
-GET    /api/notifications
-PUT    /api/notifications/{id}/read
-PUT    /api/notifications/read-all
-DELETE /api/notifications/{id}
-```
-
-### Dashboard
-
-```text
-GET /api/dashboard/admin
-GET /api/dashboard/staff
-```
-
-### Reports & Export
-
-```text
-GET /api/report
-GET /api/report/popular
-
-GET /api/export/rentals
-GET /api/export/instruments
-GET /api/export/users
-GET /api/export/reviews
-GET /api/export/revenue
-GET /api/export/popular-instruments
-GET /api/export/sales-trend
-GET /api/export/penalties
-```
+---
 
 ## Technology Stack
 
-| Technology            | Usage                        |
-| --------------------- | ---------------------------- |
-| **Laravel 12**        | Backend framework            |
-| **PHP 8.2+**          | Programming language         |
-| **Laravel Sanctum**   | API authentication           |
-| **Spatie Permission** | Role & permission management |
-| **Maatwebsite Excel** | Data export                  |
-| **DOMPDF**            | PDF generation               |
-| **MySQL / MariaDB**   | Database                     |
-| **Pest PHP**          | Automated testing            |
-| **Vite**              | Frontend asset bundling      |
+| Teknologi                     | Penggunaan           |
+| ----------------------------- | -------------------- |
+| **Laravel 12**                | Backend framework    |
+| **PHP 8.2+**                  | Bahasa pemrograman   |
+| **Laravel Sanctum**           | Authentication API   |
+| **Spatie Laravel Permission** | Role & permission    |
+| **MySQL**                     | Database             |
+| **Maatwebsite Excel**         | Export data          |
+| **DOMPDF**                    | Generate dokumen PDF |
+| **Pest PHP**                  | Automated testing    |
+| **Vite**                      | Asset bundling       |
 
-Dependency utama project dapat dilihat pada `composer.json`, termasuk Laravel 12, Sanctum, Spatie Permission, Maatwebsite Excel, dan DOMPDF.
+---
 
-## Architecture
+## Sistem Secara Keseluruhan
 
-Project menggunakan pendekatan pemisahan tanggung jawab agar proses bisnis tidak seluruhnya berada di dalam Controller.
-
-Struktur utama:
+SonaraRent dapat digambarkan sebagai ekosistem rental yang menghubungkan tiga sisi utama:
 
 ```text
-app/
-├── Enums/
-├── Http/
-│   ├── Controllers/
-│   └── Requests/
-├── Models/
-├── Repositories/
-├── Services/
-└── ...
-
-database/
-├── factories/
-├── migrations/
-└── seeders/
-
-routes/
-└── api.php
-
-resources/
-├── css/
-└── js/
+                  SONARARENT
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+        ▼             ▼             ▼
+    CUSTOMER        STAFF         ADMIN
+        │             │             │
+        │             │             │
+   ┌────▼────┐   ┌────▼────┐   ┌────▼────┐
+   │ Browse  │   │ Rental  │   │ Master  │
+   │ Rental  │   │ Payment │   │ Report  │
+   │ Payment │   │ Return  │   │ User    │
+   │ Review  │   │ Penalty │   │ System  │
+   └─────────┘   └─────────┘   └─────────┘
+        │             │             │
+        └─────────────┼─────────────┘
+                      ▼
+                 SONARARENT API
+                      │
+                      ▼
+                   DATABASE
 ```
 
-Alur umum request:
+---
 
-```text
-Client
-   │
-   ▼
-API Route
-   │
-   ▼
-Middleware
-(Authentication / Role)
-   │
-   ▼
-Controller
-   │
-   ▼
-Service
-   │
-   ▼
-Repository
-   │
-   ▼
-Model / Database
-   │
-   ▼
-JSON Response
-```
+## Project Highlights
 
-Pendekatan ini membantu memisahkan logic HTTP, business logic, dan akses database sehingga kode lebih mudah dikembangkan dan dipelihara.
+Beberapa hal yang menjadi fokus dalam pengembangan SonaraRent:
 
-## Authentication
+* RESTful API architecture
+* Role-based access control
+* Authentication menggunakan Laravel Sanctum
+* Service & Repository Pattern
+* Pemisahan business logic dan database access
+* Rental lifecycle management
+* Payment & guarantee management
+* Instrument condition tracking
+* Penalty management
+* Reporting dan data export
+* Automated testing
 
-API menggunakan **Laravel Sanctum** untuk autentikasi.
+---
 
-Endpoint yang membutuhkan autentikasi menggunakan:
+## Project Purpose
 
-```text
-Authorization: Bearer <token>
-```
+SonaraRent dibuat sebagai implementasi sistem backend untuk **digitalisasi proses bisnis penyewaan alat musik**.
 
-Contoh:
+Project ini tidak hanya berfungsi sebagai CRUD data instrumen, tetapi mencakup proses bisnis rental secara lebih lengkap, mulai dari **ketersediaan barang → transaksi → pembayaran → penyewaan → pengembalian → pengecekan kondisi → denda → laporan**.
 
-```http
-GET /api/me
-Authorization: Bearer 1|xxxxxxxxxxxxxxxx
-Accept: application/json
-```
+Dengan pendekatan REST API, backend SonaraRent dapat digunakan sebagai fondasi untuk berbagai client application, seperti web application maupun aplikasi mobile.
 
-Endpoint authentication seperti login dan register tidak membutuhkan token.
+---
 
-## Installation
+## License
 
-### Requirements
+This project is licensed under the **MIT License**.
 
-Pastikan environment sudah memiliki:
+---
 
-* PHP 8.2+
-* Composer
-* Node.js & NPM
-* MySQL / MariaDB
-* Git
+### Developed by
 
-### Clone Repository
+**Athasyah Addin Satriya Abdi**
 
-```bash
-git clone https://github.com/athasyah/API-SonaraRent.git
-cd API-SonaraRent
-```
-
-### Install PHP Dependencies
-
-```bash
-composer install
-```
-
-### Environment Configuration
-
-Copy file `.env.example` menjadi `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Untuk Windows:
-
-```cmd
-copy .env.example .env
-```
-
-Generate application key:
-
-```bash
-php artisan key:generate
-```
-
-### Database
-
-Buat database baru, kemudian sesuaikan konfigurasi database pada `.env`:
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=sonararent
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-Jalankan migration:
-
-```bash
-php artisan migrate
-```
-
-Jika project menyediakan seeder:
-
-```bash
-php artisan db:seed
-```
-
-Atau:
-
-```bash
-php artisan migrate --seed
-```
-
-### Install Frontend Dependencies
-
-```bash
-npm install
-```
-
-Untuk development:
-
-```bash
-npm run dev
-```
-
-### Run Application
-
-Jalankan Laravel development server:
-
-```bash
-php artisan serve
-```
-
-API dapat diakses melalui:
-
-```text
-http://127.0.0.1:8000
-```
-
-Endpoint API:
-
-```text
-http://127.0.0.1:8000/api
-```
-
-## Development
-
-Untuk menjalankan environment development secara bersamaan, project menyediakan script Composer:
-
-```bash
-composer run dev
-```
-
-Script tersebut menjalankan beberapa proses seperti Laravel server, queue listener, log viewer, dan Vite development server.
-
-## Testing
-
-Project menggunakan **Pest PHP** untuk automated testing.
-
-Jalankan test:
-
-```bash
-php artisan test
-```
-
-Atau:
-
-```bash
-composer test
-```
-
-## API Authorization
-
-Endpoint API dilindungi menggunakan kombinasi:
-
-```text
-Laravel Sanctum
-        +
-Spatie Laravel Permission
-        +
-Role Middleware
-```
-
-Contoh pembagian akses:
-
-```text
-ADMIN
- ├── User Management
- ├── Category Management
- ├── Activity Log
- ├── Dashboard
- ├── Reports
- ├── Export
- └── Settings
-
-STAFF
- ├── Rental Operations
- ├── Payment
- ├── Guarantee
- ├── Instrument Condition
- ├── Dashboard
- └── Reports
-
-CUSTOMER
- ├── Browse Instruments
- ├── Rental
- ├── Cart
- ├── Review
- ├── Payment
- └── Notifications
-```
-
-Route API pada project secara langsung menerapkan middleware `auth:sanctum` dan role middleware untuk membatasi akses berdasarkan role.
-
-## Project Structure
-
-```text
-API-SonaraRent/
-│
-├── app/
-│   ├── Enums/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   └── Requests/
-│   ├── Models/
-│   ├── Repositories/
-│   └── Services/
-│
-├── bootstrap/
-├── config/
-├── database/
-│   ├── factories/
-│   ├── migrations/
-│   └── seeders/
-│
-├── public/
-├── resources/
-├── routes/
-│   └── api.php
-│
-├── storage/
-├── tests/
-│
-├── .env.example
-├── artisan
-├── composer.json
-├── package.json
-└── vite.config.js
-```
-**SonaraRent API**
-RESTful backend for instrument rental management.
-
-Developed by **Athasyah Addin Satriya Abdi**.
+Backend Developer — SonaraRent
